@@ -1,0 +1,89 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/* ============================================================
+   CSS VARIABLES — the colour tokens used across the whole app.
+   To change the theme, edit these values.
+   The app defaults to dark mode (class="dark" on <html>).
+   ============================================================ */
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(0.98 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.5 0.2 290);        /* Purple — main accent colour */
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.5 0.2 290);
+  --radius: 0.625rem;
+}
+
+/* Dark mode overrides — this is what the app actually uses */
+.dark {
+  --background: oklch(0.1 0 0);         /* Near-black page background */
+  --foreground: oklch(0.985 0 0);       /* Near-white text */
+  --card: oklch(0.14 0 0);              /* Slightly lighter card background */
+  --card-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.6 0.2 290);        /* Purple accent */
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.2 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.18 0 0);
+  --muted-foreground: oklch(0.6 0 0);   /* Dimmed grey text */
+  --border: oklch(0.22 0 0);            /* Subtle dark border */
+  --input: oklch(0.18 0 0);
+  --ring: oklch(0.6 0.2 290);
+  --destructive: oklch(0.45 0.18 25);
+  --destructive-foreground: oklch(0.85 0.1 25);
+}
+
+/* Makes CSS variables available as Tailwind utility classes */
+@theme inline {
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* Base reset — applies border colour and body background globally */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Pulsing dot animation — used on the live indicator in the navbar */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.85); }
+}
+.animate-pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
