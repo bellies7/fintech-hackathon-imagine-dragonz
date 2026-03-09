@@ -16,6 +16,7 @@ import { defaultStarredTopics } from "@/lib/mock-data"
 import StatsBar from "@/components/StatsBar"
 import SearchBar from "@/components/SearchBar"
 import MostTalkedAbout from "@/components/MostTalkedAbout"
+import HighRiskAlertsPanel from "@/components/HighRiskAlertsPanel"
 import ArticleFeed from "@/components/ArticleFeed"
 import ForYouPanel from "@/components/ForYouPanel"
 
@@ -31,13 +32,26 @@ export default function OverviewPage() {
           Monitor macroeconomic developments and market-moving news
         </p>
       </div>
-      <SearchBar />
+      <SearchBar
+        starredTopics={starredTopics}
+        onTrackTopic={(topic) => {
+          if (!starredTopics.includes(topic)) {
+            setStarredTopics([...starredTopics, topic])
+          }
+        }}
+      />
       {/* Pass the live count down to StatsBar */}
       <StatsBar trackedCount={starredTopics.length} />
       <div className="grid grid-cols-1 xl:grid-cols-[400px_1fr] gap-5 items-start">
-        <MostTalkedAbout />
+        <div className="space-y-5">
+          <MostTalkedAbout />
+          <HighRiskAlertsPanel />
+        </div>
         {/* Pass state down so ArticleFeed can update it */}
-        <ArticleFeed starredTopics={starredTopics} setStarredTopics={setStarredTopics} />
+        <ArticleFeed
+          starredTopics={starredTopics}
+          setStarredTopics={setStarredTopics}
+        />
       </div>
       <ForYouPanel />
     </div>

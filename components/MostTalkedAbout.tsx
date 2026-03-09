@@ -29,7 +29,13 @@ export default function MostTalkedAbout() {
   const [activeRegion, setActiveRegion] = useState<string>("All")
 
   useEffect(() => {
-    setArticles(getArticles())
+    let cancelled = false
+    getArticles().then((data) => {
+      if (!cancelled) setArticles(data)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const popularity = useMemo(

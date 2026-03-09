@@ -1,19 +1,13 @@
-// ============================================================
-// components/SearchBar.tsx — OR / AND TOPIC SEARCH
-// ============================================================
-// UI layer for the article search tool.
-//
-// On mount, calls getArticles() once to populate the local article
-// pool. All filtering is then done locally via searchArticles()
-// without re-fetching.
-//
-// getArticles() can later accept a user query string passed from
-// a search input if the Guardian API integration adds live querying.
-// ============================================================
-
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import {
+  useState,
+  useMemo,
+  useEffect,
+  useRef,
+  type KeyboardEvent,
+  type DragEvent,
+} from "react"
 import { getArticles, type SearchArticle } from "@/lib/article-source"
 import { searchArticles } from "@/lib/search-engine"
 
@@ -25,15 +19,31 @@ const SUGGESTED_TOPICS = [
   "Monetary Policy",
 ]
 
-export default function SearchBar() {
+type FilterMode = "or" | "and"
+
+type Props = {
+  starredTopics?: string[]
+  onTrackTopic?: (topic: string) => void
+}
+
+export default function SearchBar({ starredTopics = [], onTrackTopic }: Props) {
   const [articles, setArticles] = useState<SearchArticle[]>([])
   const [orTopics, setOrTopics] = useState<string[]>([])
   const [andTopics, setAndTopics] = useState<string[]>([])
-  const [orInput, setOrInput] = useState("")
-  const [andInput, setAndInput] = useState("")
+  const [input, setInput] = useState("")
+  const [mode, setMode] = useState<FilterMode>("or")
+  const [isFocused, setIsFocused] = useState(false)
+  const [draggingTopic, setDraggingTopic] = useState<string | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    setArticles(getArticles())
+    let cancelled = false
+    getArticles().then((data) => {
+      if (!cancelled) setArticles(data)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   const results = useMemo(() => {
@@ -41,174 +51,253 @@ export default function SearchBar() {
     return searchArticles(articles, orTopics, andTopics)
   }, [articles, orTopics, andTopics])
 
-  const orSuggestions = SUGGESTED_TOPICS.filter(
-    (t) =>
-      !orTopics.includes(t) &&
-      !andTopics.includes(t) &&
-      t.toLowerCase().includes(orInput.toLowerCase()) &&
-      orInput.length > 0,
-  )
-  const andSuggestions = SUGGESTED_TOPICS.filter(
-    (t) =>
-      !orTopics.includes(t) &&
-      !andTopics.includes(t) &&
-      t.toLowerCase().includes(andInput.toLowerCase()) &&
-      andInput.length > 0,
+  const allSelected = [...orTopics, ...andTopics]
+
+  const availableSuggestions = SUGGESTED_TOPICS.filter(
+    (t) => !allSelected.includes(t),
   )
 
-  const addOrTopic = (t: string) => {
-    if (!orTopics.includes(t)) setOrTopics([...orTopics, t])
-    setOrInput("")
+  const filteredSuggestions = input.length > 0
+    ? availableSuggestions.filter((t) =>
+        t.toLowerCase().includes(input.toLowerCase()),
+      )
+    : availableSuggestions
+
+  const addTopic = (t: string) => {
+    if (allSelected.includes(t)) return
+    if (mode === "or") {
+      setOrTopics((prev) => [...prev, t])
+    } else {
+      setAndTopics((prev) => [...prev, t])
+    }
+    setInput("")
+    inputRef.current?.focus()
   }
-  const addAndTopic = (t: string) => {
-    if (!andTopics.includes(t)) setAndTopics([...andTopics, t])
-    setAndInput("")
-  }
+
   const removeOrTopic = (t: string) =>
-    setOrTopics(orTopics.filter((x) => x !== t))
+    setOrTopics((prev) => prev.filter((x) => x !== t))
   const removeAndTopic = (t: string) =>
-    setAndTopics(andTopics.filter((x) => x !== t))
+    setAndTopics((prev) => prev.filter((x) => x !== t))
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && input.trim()) {
+      addTopic(input.trim())
+    }
+  }
 
   const handleClear = () => {
     setOrTopics([])
     setAndTopics([])
-    setOrInput("")
-    setAndInput("")
+    setInput("")
   }
+
+  const handleDragStart = (e: DragEvent, topic: string) => {
+    e.dataTransfer.setData("text/plain", topic)
+    e.dataTransfer.setData("application/x-topic", topic)
+    e.dataTransfer.effectAllowed = "copy"
+    setDraggingTopic(topic)
+  }
+
+  const handleDragEnd = () => {
+    setDraggingTopic(null)
+  }
+
+  const hasFilters = orTopics.length > 0 || andTopics.length > 0
+  const showTrackHint = onTrackTopic !== undefined
 
   return (
     <div className="bg-card border border-border rounded-xl p-5 space-y-4">
-      <div>
-        <h2 className="text-lg font-semibold text-foreground">
-          Search Articles
-        </h2>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">
+            Search Articles
+          </h2>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            Type any topic or pick from suggestions below
+          </p>
+        </div>
+        {hasFilters && (
+          <button
+            onClick={handleClear}
+            className="px-3 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          >
+            Clear all
+          </button>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-3 items-end">
-        {/* OR input */}
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-medium text-foreground">
-              Include any of these topics
-            </label>
-            <span className="text-[10px] px-1.5 py-0.5 rounded border border-border text-muted-foreground">
+      {/* Search input with mode toggle */}
+      <div className="space-y-3">
+        <div
+          className={`flex items-center gap-2 rounded-lg border transition-colors ${
+            isFocused
+              ? "border-primary/50 ring-1 ring-primary/20"
+              : "border-input"
+          } bg-input px-3 py-2.5`}
+        >
+          <svg
+            className="w-4 h-4 text-muted-foreground shrink-0"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={2}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+
+          <input
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            placeholder="Search for any topic..."
+            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+          />
+
+          <div className="flex items-center rounded-full border border-border overflow-hidden shrink-0">
+            <button
+              onClick={() => setMode("or")}
+              className={`px-2.5 py-1 text-[10px] font-semibold transition-colors ${
+                mode === "or"
+                  ? "bg-primary text-white"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
               OR
-            </span>
+            </button>
+            <button
+              onClick={() => setMode("and")}
+              className={`px-2.5 py-1 text-[10px] font-semibold transition-colors ${
+                mode === "and"
+                  ? "bg-orange-500 text-white"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              AND
+            </button>
           </div>
-          <div className="relative">
-            <div className="min-h-[44px] flex flex-wrap gap-1.5 items-center p-2 rounded-lg border border-input bg-input">
+        </div>
+
+        <p className="text-[10px] text-muted-foreground px-1">
+          {mode === "or"
+            ? "OR mode \u2014 articles matching any selected topic will appear"
+            : "AND mode \u2014 only articles matching all selected topics will appear"}
+        </p>
+      </div>
+
+      {/* Active filters */}
+      {hasFilters && (
+        <div className="space-y-2">
+          {orTopics.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-semibold text-primary/70 uppercase tracking-wider shrink-0">
+                Any of
+              </span>
               {orTopics.map((t) => (
                 <span
                   key={t}
-                  className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-primary/20 border border-primary/30 text-primary text-xs"
+                  className="group flex items-center gap-1 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium transition-colors hover:bg-primary/20"
                 >
                   {t}
                   <button
                     onClick={() => removeOrTopic(t)}
-                    className="hover:text-white transition-colors"
+                    className="opacity-50 group-hover:opacity-100 hover:text-white transition-all"
                   >
-                    ×
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                   </button>
                 </span>
               ))}
-              <input
-                value={orInput}
-                onChange={(e) => setOrInput(e.target.value)}
-                onKeyDown={(e) =>
-                  e.key === "Enter" && orInput.trim() && addOrTopic(orInput.trim())
-                }
-                placeholder={
-                  orTopics.length === 0 ? "Type and press Enter..." : "Add more..."
-                }
-                className="flex-1 min-w-[100px] bg-transparent text-xs text-foreground placeholder:text-muted-foreground outline-none"
-              />
             </div>
-            {orSuggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl z-10 overflow-hidden">
-                {orSuggestions.map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => addOrTopic(t)}
-                    className="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-muted transition-colors"
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+          )}
 
-        {/* AND input */}
-        <div className="space-y-1.5">
-          <div className="flex items-center gap-2">
-            <label className="text-xs font-medium text-foreground">
-              Narrow by — must include all
-            </label>
-            <span className="text-[10px] px-1.5 py-0.5 rounded border border-border text-muted-foreground">
-              AND
-            </span>
-          </div>
-          <div className="relative">
-            <div className="min-h-[44px] flex flex-wrap gap-1.5 items-center p-2 rounded-lg border border-input bg-input">
+          {andTopics.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-semibold text-orange-400/70 uppercase tracking-wider shrink-0">
+                Must have
+              </span>
               {andTopics.map((t) => (
                 <span
                   key={t}
-                  className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-orange-500/20 border border-orange-500/30 text-orange-400 text-xs"
+                  className="group flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-medium transition-colors hover:bg-orange-500/20"
                 >
                   {t}
                   <button
                     onClick={() => removeAndTopic(t)}
-                    className="hover:text-white transition-colors"
+                    className="opacity-50 group-hover:opacity-100 hover:text-white transition-all"
                   >
-                    ×
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
                   </button>
                 </span>
               ))}
-              <input
-                value={andInput}
-                onChange={(e) => setAndInput(e.target.value)}
-                onKeyDown={(e) =>
-                  e.key === "Enter" &&
-                  andInput.trim() &&
-                  addAndTopic(andInput.trim())
-                }
-                placeholder={
-                  andTopics.length === 0
-                    ? "Type and press Enter..."
-                    : "Add more..."
-                }
-                className="flex-1 min-w-[100px] bg-transparent text-xs text-foreground placeholder:text-muted-foreground outline-none"
-              />
             </div>
-            {andSuggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-xl z-10 overflow-hidden">
-                {andSuggestions.map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => addAndTopic(t)}
-                    className="w-full text-left px-3 py-2 text-xs text-foreground hover:bg-muted transition-colors"
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Clear button */}
-        <div className="flex gap-2">
-          {(orTopics.length > 0 || andTopics.length > 0) && (
-            <button
-              onClick={handleClear}
-              className="px-4 py-2 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            >
-              Clear
-            </button>
           )}
         </div>
-      </div>
+      )}
+
+      {/* Suggested topics */}
+      {filteredSuggestions.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+              {input.length > 0 ? "Matching topics" : "Suggested topics"}
+            </span>
+            <div className="h-px flex-1 bg-border" />
+          </div>
+
+          {showTrackHint && (
+            <p className="text-[10px] text-muted-foreground/60 text-center italic">
+              Click to filter \u00b7 Drag to Currently Tracking
+            </p>
+          )}
+
+          <div className="flex flex-wrap gap-1.5">
+            {filteredSuggestions.map((t) => {
+              const isAlreadyTracked = starredTopics.includes(t)
+              return (
+                <button
+                  key={t}
+                  onClick={() => addTopic(t)}
+                  draggable={showTrackHint && !isAlreadyTracked}
+                  onDragStart={(e) => handleDragStart(e, t)}
+                  onDragEnd={handleDragEnd}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all duration-150 select-none ${
+                    draggingTopic === t
+                      ? "opacity-50 scale-95"
+                      : "hover:scale-[1.03] active:scale-95"
+                  } ${
+                    isAlreadyTracked
+                      ? "border-emerald-500/30 text-emerald-500/60 cursor-default"
+                      : showTrackHint
+                        ? `cursor-grab active:cursor-grabbing ${
+                            mode === "or"
+                              ? "border-primary/15 text-muted-foreground hover:text-primary hover:border-primary/40 hover:bg-primary/5"
+                              : "border-orange-500/15 text-muted-foreground hover:text-orange-400 hover:border-orange-500/40 hover:bg-orange-500/5"
+                          }`
+                        : mode === "or"
+                          ? "border-primary/15 text-muted-foreground hover:text-primary hover:border-primary/40 hover:bg-primary/5"
+                          : "border-orange-500/15 text-muted-foreground hover:text-orange-400 hover:border-orange-500/40 hover:bg-orange-500/5"
+                  }`}
+                >
+                  {isAlreadyTracked ? "\u2713 " : "+ "}
+                  {t}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Results */}
       {results !== null && (

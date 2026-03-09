@@ -1,43 +1,94 @@
-import { describe, it, expect } from "vitest"
-import { render, screen } from "@testing-library/react"
+import { describe, it, expect, vi, beforeEach } from "vitest"
+import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import SearchBar from "../SearchBar"
+import { getArticles, getDummyArticles } from "@/lib/article-source"
 
-describe("SearchBar", () => {
-  it("renders the search heading", () => {
-    render(<SearchBar />)
+vi.mock("@/lib/article-source", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/article-source")>(
+    "@/lib/article-source",
+  )
+  return {
+    ...actual,
+    getArticles: vi.fn().mockResolvedValue(actual.getDummyArticles()),
+  }
+})
+
+const mockedGetArticles = vi.mocked(getArticles)
+
+beforeEach(() => {
+  mockedGetArticles.mockResolvedValue(getDummyArticles())
+})
+
+async function renderAndWait() {
+  render(<SearchBar />)
+  await waitFor(() => {
     expect(screen.getByText("Search Articles")).toBeInTheDocument()
   })
+}
 
-  it("shows no results section when no topics are entered", () => {
-    render(<SearchBar />)
+describe("SearchBar", () => {
+  it("renders the search heading and subtitle", async () => {
+    await renderAndWait()
+    expect(screen.getByText("Search Articles")).toBeInTheDocument()
+    expect(
+      screen.getByText("Type any topic or pick from suggestions below"),
+    ).toBeInTheDocument()
+  })
+
+  it("shows no results section when no topics are entered", async () => {
+    await renderAndWait()
     expect(screen.queryByText(/articles? found/)).not.toBeInTheDocument()
   })
 
-  it("adds an OR topic on Enter and shows results reactively", async () => {
+  it("shows suggested topic pills", async () => {
+    await renderAndWait()
+    expect(screen.getByText("Suggested topics")).toBeInTheDocument()
+    expect(screen.getByText("+ Inflation")).toBeInTheDocument()
+    expect(screen.getByText("+ Oil")).toBeInTheDocument()
+  })
+
+  it("adds an OR topic by typing and pressing Enter", async () => {
     const user = userEvent.setup()
-    render(<SearchBar />)
+    await renderAndWait()
 
-    const orInput = screen.getAllByPlaceholderText("Type and press Enter...")[0]
-    await user.type(orInput, "inflation{Enter}")
+    const input = screen.getByPlaceholderText("Search for any topic...")
+    await user.type(input, "inflation{Enter}")
 
-    expect(screen.getByText("1 article found")).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText("1 article found")).toBeInTheDocument()
+    })
     expect(screen.getByText("US inflation rises again")).toBeInTheDocument()
   })
 
-  it("adds an AND topic and narrows results", async () => {
+  it("adds a topic by clicking a suggestion pill", async () => {
     const user = userEvent.setup()
-    render(<SearchBar />)
+    await renderAndWait()
 
-    const inputs = screen.getAllByPlaceholderText("Type and press Enter...")
-    await user.type(inputs[0], "us{Enter}")
+    await user.click(screen.getByText("+ Inflation"))
 
-    const articleCountBefore = screen.getByText(/articles? found/)
-    expect(articleCountBefore).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText("1 article found")).toBeInTheDocument()
+    })
+  })
 
-    await user.type(inputs[1], "federal-reserve{Enter}")
+  it("switches to AND mode and narrows results", async () => {
+    const user = userEvent.setup()
+    await renderAndWait()
 
-    expect(screen.getByText("1 article found")).toBeInTheDocument()
+    const input = screen.getByPlaceholderText("Search for any topic...")
+    await user.type(input, "us{Enter}")
+
+    await waitFor(() => {
+      expect(screen.getByText(/articles? found/)).toBeInTheDocument()
+    })
+
+    await user.click(screen.getByRole("button", { name: "AND" }))
+    await user.type(input, "federal-reserve{Enter}")
+
+    await waitFor(() => {
+      expect(screen.getByText("1 article found")).toBeInTheDocument()
+    })
     expect(
       screen.getByText("Fed hints at interest rate hike"),
     ).toBeInTheDocument()
@@ -45,56 +96,96 @@ describe("SearchBar", () => {
 
   it("shows empty state when no articles match", async () => {
     const user = userEvent.setup()
-    render(<SearchBar />)
+    await renderAndWait()
 
-    const inputs = screen.getAllByPlaceholderText("Type and press Enter...")
-    await user.type(inputs[0], "china{Enter}")
-    await user.type(inputs[1], "federal-reserve{Enter}")
+    const input = screen.getByPlaceholderText("Search for any topic...")
+    await user.type(input, "china{Enter}")
 
-    expect(
-      screen.getByText("No articles match your current filters."),
-    ).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "AND" }))
+    await user.type(input, "federal-reserve{Enter}")
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("No articles match your current filters."),
+      ).toBeInTheDocument()
+    })
   })
 
-  it("clears all topics and hides results when Clear is clicked", async () => {
+  it("clears all topics when Clear all is clicked", async () => {
     const user = userEvent.setup()
-    render(<SearchBar />)
+    await renderAndWait()
 
-    const orInput = screen.getAllByPlaceholderText("Type and press Enter...")[0]
-    await user.type(orInput, "oil{Enter}")
+    const input = screen.getByPlaceholderText("Search for any topic...")
+    await user.type(input, "oil{Enter}")
 
-    expect(screen.getByText(/articles? found/)).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText(/articles? found/)).toBeInTheDocument()
+    })
 
-    await user.click(screen.getByText("Clear"))
+    await user.click(screen.getByText("Clear all"))
 
-    expect(screen.queryByText(/articles? found/)).not.toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.queryByText(/articles? found/)).not.toBeInTheDocument()
+    })
   })
 
-  it("removes an OR topic chip when × is clicked", async () => {
+  it("removes an OR topic chip when its close button is clicked", async () => {
     const user = userEvent.setup()
-    render(<SearchBar />)
+    await renderAndWait()
 
-    const orInput = screen.getAllByPlaceholderText("Type and press Enter...")[0]
-    await user.type(orInput, "oil{Enter}")
+    const input = screen.getByPlaceholderText("Search for any topic...")
+    await user.type(input, "oil{Enter}")
 
-    const chips = screen.getAllByText("oil")
-    expect(chips.length).toBeGreaterThan(0)
+    await waitFor(() => {
+      expect(screen.getByText(/articles? found/)).toBeInTheDocument()
+    })
 
-    const removeButton = screen.getAllByText("×")[0]
-    await user.click(removeButton)
+    const anyOfLabel = screen.getByText("Any of")
+    const filterSection = anyOfLabel.closest("div")!
+    const chipButton = filterSection.querySelector("button")!
+    await user.click(chipButton)
 
-    expect(screen.queryByText(/articles? found/)).not.toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.queryByText(/articles? found/)).not.toBeInTheDocument()
+    })
   })
 
   it("renders article links pointing to the correct url", async () => {
     const user = userEvent.setup()
-    render(<SearchBar />)
+    await renderAndWait()
 
-    const orInput = screen.getAllByPlaceholderText("Type and press Enter...")[0]
-    await user.type(orInput, "inflation{Enter}")
+    const input = screen.getByPlaceholderText("Search for any topic...")
+    await user.type(input, "inflation{Enter}")
+
+    await waitFor(() => {
+      expect(screen.getByText("US inflation rises again")).toBeInTheDocument()
+    })
 
     const link = screen.getByText("US inflation rises again").closest("a")
     expect(link).toHaveAttribute("href", "https://example.com/1")
     expect(link).toHaveAttribute("target", "_blank")
+  })
+
+  it("filters suggestion pills as user types", async () => {
+    const user = userEvent.setup()
+    await renderAndWait()
+
+    const input = screen.getByPlaceholderText("Search for any topic...")
+    await user.type(input, "inf")
+
+    expect(screen.getByText("+ Inflation")).toBeInTheDocument()
+    expect(screen.queryByText("+ Oil")).not.toBeInTheDocument()
+    expect(screen.getByText("Matching topics")).toBeInTheDocument()
+  })
+
+  it("hides a suggestion pill once it has been selected", async () => {
+    const user = userEvent.setup()
+    await renderAndWait()
+
+    expect(screen.getByText("+ Oil")).toBeInTheDocument()
+
+    await user.click(screen.getByText("+ Oil"))
+
+    expect(screen.queryByText("+ Oil")).not.toBeInTheDocument()
   })
 })

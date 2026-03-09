@@ -1,38 +1,3 @@
-// ============================================================
-// lib/article-source.ts — DATA LAYER
-// ============================================================
-// Single source of truth for articles. Both the Search feature
-// and Most Talked About Topics feature call getArticles() from
-// this file. The rest of the app treats this as a black box —
-// only the returned shape matters.
-//
-// ── TODO: GUARDIAN API ──────────────────────────────────────
-// To swap in the Guardian API, replace the body of getArticles()
-// with an HTTP call to:
-//
-//   https://content.guardianapis.com/search
-//
-// Required API params:
-//   show-tags=keyword
-//   show-fields=webUrl
-//   order-by=newest
-//   q=<query>                 (forward the query argument)
-//   api-key=<GUARDIAN_API_KEY> (from process.env.GUARDIAN_API_KEY)
-//
-// Guardian field mapping → SearchArticle schema:
-//   webTitle                      → title
-//   tags[].id  (split on "/", take last segment, lowercase, hyphenated) → topics
-//   sectionId                     → append to topics if not already present
-//   webPublicationDate            → date   (trim to first 10 chars for YYYY-MM-DD)
-//   webUrl                        → url
-//   "The Guardian"                → source (hardcoded string)
-//   pillarName or tag             → region (map to "Global" / "Asia" / "Singapore"
-//                                    — mapping TBD at integration time)
-//
-// The function signature and return type stay exactly the same.
-// Nothing outside this file needs to change.
-// ============================================================
-
 export type ArticleRegion = "Singapore" | "Asia" | "Global"
 
 export type SearchArticle = {
@@ -136,12 +101,48 @@ const DUMMY_ARTICLES: SearchArticle[] = [
 ]
 
 /**
- * Returns a list of articles conforming to the SearchArticle schema.
- *
- * @param _query - Optional search query string. Ignored by the dummy
- *   implementation but included so the signature is already compatible
- *   with the Guardian API, which accepts a free-text query.
+ * Returns dummy articles synchronously. Used as a fallback and in tests.
  */
-export function getArticles(_query?: string): SearchArticle[] {
+export function getDummyArticles(): SearchArticle[] {
   return [...DUMMY_ARTICLES]
+}
+
+/**
+ * Fetches articles from the internal `/api/articles` route (which
+ * proxies the Guardian API server-side to keep the key secret).
+ * Falls back to dummy data if the API route returns an error or
+ * if we're in a non-browser environment (e.g. tests).
+ */
+export async function getArticles(query?: string): Promise<SearchArticle[]> {
+  if (typeof window === "undefined") {
+    return getDummyArticles()
+  }
+
+  try {
+    const params = new URLSearchParams()
+    if (query) {
+      params.set("q", query)
+    }
+
+    const qs = params.toString()
+    const url = `/api/articles${qs ? `?${qs}` : ""}`
+
+    const res = await fetch(url)
+
+    if (!res.ok) {
+      console.error(`/api/articles returned ${res.status}`)
+      return getDummyArticles()
+    }
+
+    const data: { articles: SearchArticle[] } = await res.json()
+
+    if (!data.articles || data.articles.length === 0) {
+      return getDummyArticles()
+    }
+
+    return data.articles
+  } catch (err) {
+    console.error("Article fetch failed:", err)
+    return getDummyArticles()
+  }
 }

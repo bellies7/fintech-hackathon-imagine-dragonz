@@ -1,11 +1,10 @@
 import { describe, it, expect } from "vitest"
-import { getArticles } from "../article-source"
+import { getDummyArticles } from "../article-source"
 import { computeTopicPopularity } from "../topic-popularity"
 
-const articles = getArticles()
+const articles = getDummyArticles()
 
 describe("computeTopicPopularity", () => {
-  // Test case 1: Region = All → all articles used
   it("uses all articles when region is All", () => {
     const results = computeTopicPopularity(articles, "All")
     const totalCount = results.reduce((sum, r) => sum + r.count, 0)
@@ -16,7 +15,6 @@ describe("computeTopicPopularity", () => {
     expect(totalCount).toBe(totalTopicMentions)
   })
 
-  // Test case 2: Region = Singapore → only Singapore articles
   it("counts only Singapore articles when region is Singapore", () => {
     const results = computeTopicPopularity(articles, "Singapore")
     const sgArticles = articles.filter((a) => a.region === "Singapore")
@@ -31,7 +29,6 @@ describe("computeTopicPopularity", () => {
     expect(results.find((r) => r.topic === "economy")).toBeDefined()
   })
 
-  // Test case 3: Region = Asia → only Asia articles; Singapore excluded
   it("counts only Asia articles when region is Asia", () => {
     const results = computeTopicPopularity(articles, "Asia")
     const asiaArticles = articles.filter((a) => a.region === "Asia")
@@ -45,7 +42,6 @@ describe("computeTopicPopularity", () => {
     expect(results.find((r) => r.topic === "singapore")).toBeUndefined()
   })
 
-  // Test case 4: Results sorted highest count first
   it("returns results sorted by count descending", () => {
     const results = computeTopicPopularity(articles, "All")
     for (let i = 1; i < results.length; i++) {
@@ -53,7 +49,6 @@ describe("computeTopicPopularity", () => {
     }
   })
 
-  // Test case 5: Percentages sum to 100
   it("has percentages that sum to approximately 100", () => {
     const results = computeTopicPopularity(articles, "All")
     const totalPct = results.reduce((sum, r) => sum + r.percentage, 0)

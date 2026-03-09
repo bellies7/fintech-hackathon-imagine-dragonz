@@ -1,20 +1,18 @@
 import { describe, it, expect } from "vitest"
-import { getArticles } from "../article-source"
+import { getArticles, getDummyArticles } from "../article-source"
 
-describe("getArticles", () => {
+describe("getDummyArticles", () => {
   it("returns a non-empty array", () => {
-    const articles = getArticles()
+    const articles = getDummyArticles()
     expect(articles.length).toBeGreaterThan(0)
   })
 
-  it("returns the same result regardless of query parameter", () => {
-    const withoutQuery = getArticles()
-    const withQuery = getArticles("inflation")
-    expect(withQuery).toEqual(withoutQuery)
+  it("contains exactly 11 dummy articles", () => {
+    expect(getDummyArticles()).toHaveLength(11)
   })
 
   it("returns articles conforming to the SearchArticle schema", () => {
-    const articles = getArticles()
+    const articles = getDummyArticles()
 
     for (const article of articles) {
       expect(typeof article.title).toBe("string")
@@ -28,7 +26,7 @@ describe("getArticles", () => {
   })
 
   it("stores topics in lowercase hyphenated format", () => {
-    const articles = getArticles()
+    const articles = getDummyArticles()
 
     for (const article of articles) {
       for (const topic of article.topics) {
@@ -38,21 +36,35 @@ describe("getArticles", () => {
     }
   })
 
-  it("contains exactly 11 dummy articles", () => {
-    expect(getArticles()).toHaveLength(11)
-  })
-
   it("returns a new array reference each call (no shared mutation risk)", () => {
-    const a = getArticles()
-    const b = getArticles()
+    const a = getDummyArticles()
+    const b = getDummyArticles()
     expect(a).not.toBe(b)
   })
 
   it("includes articles from all three regions", () => {
-    const articles = getArticles()
+    const articles = getDummyArticles()
     const regions = new Set(articles.map((a) => a.region))
     expect(regions).toContain("Global")
     expect(regions).toContain("Asia")
     expect(regions).toContain("Singapore")
+  })
+})
+
+describe("getArticles", () => {
+  it("returns a promise", () => {
+    const result = getArticles()
+    expect(result).toBeInstanceOf(Promise)
+  })
+
+  it("falls back to dummy data when no API key is set", async () => {
+    const articles = await getArticles()
+    expect(articles).toHaveLength(11)
+    expect(articles).toEqual(getDummyArticles())
+  })
+
+  it("accepts an optional query parameter", async () => {
+    const articles = await getArticles("inflation")
+    expect(articles).toHaveLength(11)
   })
 })

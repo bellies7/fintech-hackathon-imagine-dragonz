@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest"
-import { getArticles } from "../article-source"
+import { getDummyArticles } from "../article-source"
 import { searchArticles, normaliseTopic } from "../search-engine"
 
-const articles = getArticles()
+const articles = getDummyArticles()
 
 describe("normaliseTopic", () => {
   it("lowercases and hyphenates multi-word input", () => {
@@ -23,7 +23,6 @@ describe("normaliseTopic", () => {
 })
 
 describe("searchArticles", () => {
-  // Test case 1: Main = {inflation}, no narrowing
   it("returns only articles tagged 'inflation' when main = {inflation}", () => {
     const results = searchArticles(articles, ["inflation"])
     expect(results.length).toBeGreaterThan(0)
@@ -34,7 +33,6 @@ describe("searchArticles", () => {
     expect(results[0].title).toBe("US inflation rises again")
   })
 
-  // Test case 2: Main = {inflation, energy}, no narrowing (union)
   it("returns articles tagged inflation OR energy", () => {
     const results = searchArticles(articles, ["inflation", "energy"])
     expect(results.length).toBeGreaterThan(1)
@@ -46,7 +44,6 @@ describe("searchArticles", () => {
     expect(results).toHaveLength(3)
   })
 
-  // Test case 3: Main = {us, inflation}, narrow = {federal-reserve}
   it("returns articles matching (us OR inflation) AND federal-reserve", () => {
     const results = searchArticles(articles, ["us", "inflation"], [
       "federal-reserve",
@@ -62,7 +59,6 @@ describe("searchArticles", () => {
     expect(results[0].title).toBe("Fed hints at interest rate hike")
   })
 
-  // Test case 4: Main = {economy}, narrow = {central-bank}
   it("returns economy-tagged articles that also have central-bank", () => {
     const results = searchArticles(articles, ["economy"], ["central-bank"])
     expect(results.length).toBeGreaterThan(0)
@@ -74,7 +70,6 @@ describe("searchArticles", () => {
     expect(results[0].title).toBe("ECB holds rates amid eurozone slowdown")
   })
 
-  // Test case 5: Main = {china}, narrow = {federal-reserve} → 0 results
   it("returns zero results for china + federal-reserve (no overlap)", () => {
     const results = searchArticles(articles, ["china"], ["federal-reserve"])
     expect(results).toHaveLength(0)

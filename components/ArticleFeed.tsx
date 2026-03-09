@@ -1,73 +1,78 @@
-// ============================================================
-// components/ArticleFeed.tsx — CURRENTLY TRACKING
-// ============================================================
-// Shows articles filtered by the user's starred topics.
-// Features:
-//   - Starred topic pills with × to remove
-//   - "+ Add Topic" dropdown to add more
-//   - Articles filtered to match starred topics
-//   - Hot/Warm/Cool colour-coded article cards
-//   - Click any article to open the NewsDetailPanel overlay
-//
-// TODO (backend): Replace mock data imports with API calls.
-// See lib/mock-data.ts for details on what to replace.
-// ============================================================
-
 "use client"
 
-import { useState } from "react"
+import { useState, type DragEvent } from "react"
 import { articles, availableTopics, type Article } from "@/lib/mock-data"
 import NewsDetailPanel from "./NewsDetailPanel"
 
-// Heat level colour config — controls card border + badge colour
 const heatConfig = {
-  Hot:  { border: "border-red-500/40",    badge: "bg-red-500/15 text-red-400 border-red-500/30",    icon: "🔥" },
-  Warm: { border: "border-orange-500/40", badge: "bg-orange-500/15 text-orange-400 border-orange-500/30", icon: "☀️" },
-  Cool: { border: "border-blue-500/40",   badge: "bg-blue-500/15 text-blue-400 border-blue-500/30",   icon: "❄️" },
+  Hot:  { border: "border-red-500/40",    badge: "bg-red-500/15 text-red-400 border-red-500/30",    icon: "\uD83D\uDD25" },
+  Warm: { border: "border-orange-500/40", badge: "bg-orange-500/15 text-orange-400 border-orange-500/30", icon: "\u2600\uFE0F" },
+  Cool: { border: "border-blue-500/40",   badge: "bg-blue-500/15 text-blue-400 border-blue-500/30",   icon: "\u2744\uFE0F" },
 }
 
 type Props = {
   starredTopics: string[]
   setStarredTopics: (topics: string[]) => void
 }
-  // ── STATE ─────────────────────────────────────────────────
-  // Starred topics — starts with defaults, user can add/remove
-  // TODO (backend): Load initial value from GET /api/user/starred-topics
+
 export default function ArticleFeed({ starredTopics, setStarredTopics }: Props) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
+  const [isDragOver, setIsDragOver] = useState(false)
 
-  // ── DERIVED DATA ──────────────────────────────────────────
-  // Filter articles to only those matching at least one starred topic
-  // TODO (backend): Replace with GET /api/articles?topics=...
   const filteredArticles = articles.filter(a =>
     starredTopics.some(topic => a.tags.includes(topic) || a.topic === topic)
   )
 
   const unstarredTopics = availableTopics.filter(t => !starredTopics.includes(t))
 
-const removeTopic = (topic: string) =>
-  setStarredTopics(starredTopics.filter(t => t !== topic))
+  const removeTopic = (topic: string) =>
+    setStarredTopics(starredTopics.filter(t => t !== topic))
 
-const addTopic = (topic: string) => {
-  setStarredTopics([...starredTopics, topic])
-  setDropdownOpen(false)
-    // TODO (backend): POST /api/user/starred-topics { topic }
+  const addTopic = (topic: string) => {
+    if (!starredTopics.includes(topic)) {
+      setStarredTopics([...starredTopics, topic])
+    }
+    setDropdownOpen(false)
+  }
+
+  const handleDragOver = (e: DragEvent) => {
+    if (e.dataTransfer.types.includes("application/x-topic")) {
+      e.preventDefault()
+      e.dataTransfer.dropEffect = "copy"
+      setIsDragOver(true)
+    }
+  }
+
+  const handleDragLeave = (e: DragEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = e.clientX
+    const y = e.clientY
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      setIsDragOver(false)
+    }
+  }
+
+  const handleDrop = (e: DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(false)
+    const topic = e.dataTransfer.getData("application/x-topic")
+    if (topic) {
+      addTopic(topic)
+    }
   }
 
   return (
     <>
       <div className="bg-card border border-border rounded-xl overflow-visible">
 
-        {/* ── PANEL HEADER ──────────────────────────────────── */}
+        {/* Panel header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <div>
             <h3 className="text-xl font-semibold text-foreground">Currently Tracking</h3>
             <p className="text-xs text-muted-foreground mt-0.5">Articles from your starred topics</p>
           </div>
 
-          {/* ── ADD TOPIC DROPDOWN ────────────────────────────
-              Click button to open/close the topic list */}
           <div className="relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -94,26 +99,46 @@ const addTopic = (topic: string) => {
           </div>
         </div>
 
-        {/* ── STARRED TOPIC PILLS ───────────────────────────────
-            Star icon + topic name + × to remove */}
-        <div className="flex flex-wrap gap-2 px-5 py-3 border-b border-border">
+        {/* Starred topic pills — drop zone */}
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`flex flex-wrap gap-2 px-5 py-3 border-b transition-all duration-200 ${
+            isDragOver
+              ? "border-primary bg-primary/5 border-dashed border-2 py-4"
+              : "border-border"
+          }`}
+        >
+          {isDragOver && (
+            <div className="w-full flex items-center justify-center gap-2 py-1">
+              <svg className="w-4 h-4 text-primary animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              </svg>
+              <span className="text-xs font-medium text-primary">Drop here to track</span>
+              <svg className="w-4 h-4 text-primary animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              </svg>
+            </div>
+          )}
           {starredTopics.map(topic => (
             <span key={topic}
               className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">
-              ★ {topic}
-              <button onClick={() => removeTopic(topic)}
-                className="hover:text-white transition-colors ml-0.5 text-primary/60 hover:text-primary">
-                ×
+              \u2605 {topic}
+              <button
+                onClick={() => removeTopic(topic)}
+                className="transition-colors ml-0.5 text-primary/60 hover:text-primary"
+              >
+                \u00d7
               </button>
             </span>
           ))}
-          {starredTopics.length === 0 && (
-            <p className="text-xs text-muted-foreground">No topics starred — click "+ Add Topic" to start tracking</p>
+          {starredTopics.length === 0 && !isDragOver && (
+            <p className="text-xs text-muted-foreground">No topics starred \u2014 click "+ Add Topic" or drag from suggested topics</p>
           )}
         </div>
 
-        {/* ── ARTICLE CARDS ─────────────────────────────────────
-            Click to open detail panel. */}
+        {/* Article cards */}
         <div className="divide-y divide-border max-h-[600px] overflow-y-auto">
           {filteredArticles.length === 0 ? (
             <div className="px-5 py-8 text-center text-sm text-muted-foreground">
@@ -124,13 +149,12 @@ const addTopic = (topic: string) => {
               const heat = heatConfig[article.heat]
               return (
                 <div key={article.id} onClick={() => setSelectedArticle(article)}
-                  className={`mx-4 my-3 rounded-xl border border-border bg-card p-4 cursor-pointer hover:bg-muted/30 transition-colors group`}>
+                  className="mx-4 my-3 rounded-xl border border-border bg-card p-4 cursor-pointer hover:bg-muted/30 transition-colors group">
 
-                  {/* Source + date + external icon */}
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground">{article.source}</span>
-                      <span className="text-xs text-muted-foreground">•</span>
+                      <span className="text-xs text-muted-foreground">&bull;</span>
                       <span className="text-xs text-muted-foreground">{article.date}</span>
                     </div>
                     <svg className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors"
@@ -139,18 +163,15 @@ const addTopic = (topic: string) => {
                     </svg>
                   </div>
 
-                  {/* Headline */}
                   <h4 className="text-base font-semibold text-foreground leading-snug mb-2 group-hover:text-primary transition-colors">
                     {article.title}
                   </h4>
 
-                  {/* ── RISK IMPLICATION ──────────────────────── */}
                   <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 mb-3">
-                    <span className="text-red-400 text-xs mt-0.5">⚠</span>
+                    <span className="text-red-400 text-xs mt-0.5">\u26A0</span>
                     <p className="text-xs text-red-400 leading-relaxed">{article.riskImplication}</p>
                   </div>
 
-                  {/* Tags + heat badge */}
                   <div className="flex items-center justify-between">
                     <div className="flex flex-wrap gap-1.5">
                       {article.tags.slice(0, 3).map(tag => (
@@ -170,9 +191,6 @@ const addTopic = (topic: string) => {
         </div>
       </div>
 
-      {/* ── NEWS DETAIL PANEL ─────────────────────────────────
-          Overlays the page when an article is clicked.
-          Null article = panel is hidden. */}
       <NewsDetailPanel article={selectedArticle} onClose={() => setSelectedArticle(null)} />
     </>
   )
