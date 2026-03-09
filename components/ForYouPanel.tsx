@@ -83,9 +83,14 @@ export default function ForYouPanel() {
                 <p className="text-[10px] text-muted-foreground mb-1">{article.topic}</p>
 
                 {/* Article title */}
-                <h4 className="text-base font-semibold text-foreground leading-snug mb-2 group-hover:text-primary transition-colors">
+                <h4 className="text-base font-semibold text-foreground leading-snug mb-1 group-hover:text-primary transition-colors">
                   {article.title}
                 </h4>
+
+                {/* Short article summary */}
+                <p className="text-xs text-muted-foreground leading-relaxed mb-2 line-clamp-2">
+                  {article.summary}
+                </p>
 
                 {/* ── RISK IMPLICATION ────────────────────────
                     Warning icon + one-line risk summary */}

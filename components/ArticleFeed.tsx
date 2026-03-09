@@ -5,9 +5,9 @@ import { articles, availableTopics, type Article } from "@/lib/mock-data"
 import NewsDetailPanel from "./NewsDetailPanel"
 
 const heatConfig = {
-  Hot:  { border: "border-red-500/40",    badge: "bg-red-500/15 text-red-400 border-red-500/30",    icon: "\uD83D\uDD25" },
-  Warm: { border: "border-orange-500/40", badge: "bg-orange-500/15 text-orange-400 border-orange-500/30", icon: "\u2600\uFE0F" },
-  Cool: { border: "border-blue-500/40",   badge: "bg-blue-500/15 text-blue-400 border-blue-500/30",   icon: "\u2744\uFE0F" },
+  Hot:  { border: "border-red-500/40",    badge: "bg-red-500/15 text-red-400 border-red-500/30",    icon: "🔥" },
+  Warm: { border: "border-orange-500/40", badge: "bg-orange-500/15 text-orange-400 border-orange-500/30", icon: "☀️" },
+  Cool: { border: "border-blue-500/40",   badge: "bg-blue-500/15 text-blue-400 border-blue-500/30",   icon: "❄️" },
 }
 
 type Props = {
@@ -64,7 +64,7 @@ export default function ArticleFeed({ starredTopics, setStarredTopics }: Props) 
 
   return (
     <>
-      <div className="bg-card border border-border rounded-xl overflow-visible">
+      <div className="bg-card border border-border rounded-xl overflow-visible flex flex-col max-h-[640px]">
 
         {/* Panel header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
@@ -121,25 +121,27 @@ export default function ArticleFeed({ starredTopics, setStarredTopics }: Props) 
               </svg>
             </div>
           )}
-          {starredTopics.map(topic => (
-            <span key={topic}
-              className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary">
-              \u2605 {topic}
+          {starredTopics.map((topic) => (
+            <span
+              key={topic}
+              className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-primary/10 border border-primary/25 text-primary"
+            >
+              ★ {topic}
               <button
                 onClick={() => removeTopic(topic)}
                 className="transition-colors ml-0.5 text-primary/60 hover:text-primary"
               >
-                \u00d7
+                ×
               </button>
             </span>
           ))}
           {starredTopics.length === 0 && !isDragOver && (
-            <p className="text-xs text-muted-foreground">No topics starred \u2014 click "+ Add Topic" or drag from suggested topics</p>
+            <p className="text-xs text-muted-foreground">No topics starred — click "+ Add Topic" or drag from suggested topics</p>
           )}
         </div>
 
         {/* Article cards */}
-        <div className="divide-y divide-border max-h-[600px] overflow-y-auto">
+        <div className="divide-y divide-border flex-1 min-h-0 overflow-y-auto">
           {filteredArticles.length === 0 ? (
             <div className="px-5 py-8 text-center text-sm text-muted-foreground">
               No articles found for your starred topics.
@@ -168,7 +170,7 @@ export default function ArticleFeed({ starredTopics, setStarredTopics }: Props) 
                   </h4>
 
                   <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 mb-3">
-                    <span className="text-red-400 text-xs mt-0.5">\u26A0</span>
+                    <span className="text-red-400 text-xs mt-0.5">⚠</span>
                     <p className="text-xs text-red-400 leading-relaxed">{article.riskImplication}</p>
                   </div>
 

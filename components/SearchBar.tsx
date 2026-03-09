@@ -187,8 +187,8 @@ export default function SearchBar({ starredTopics = [], onTrackTopic }: Props) {
 
         <p className="text-[10px] text-muted-foreground px-1">
           {mode === "or"
-            ? "OR mode \u2014 articles matching any selected topic will appear"
-            : "AND mode \u2014 only articles matching all selected topics will appear"}
+            ? "OR mode — articles matching any selected topic will appear"
+            : "AND mode — only articles matching all selected topics will appear"}
         </p>
       </div>
 
@@ -258,7 +258,7 @@ export default function SearchBar({ starredTopics = [], onTrackTopic }: Props) {
 
           {showTrackHint && (
             <p className="text-[10px] text-muted-foreground/60 text-center italic">
-              Click to filter \u00b7 Drag to Currently Tracking
+              Click to filter · Drag to Currently Tracking
             </p>
           )}
 
@@ -290,7 +290,7 @@ export default function SearchBar({ starredTopics = [], onTrackTopic }: Props) {
                           : "border-orange-500/15 text-muted-foreground hover:text-orange-400 hover:border-orange-500/40 hover:bg-orange-500/5"
                   }`}
                 >
-                  {isAlreadyTracked ? "\u2713 " : "+ "}
+                  {isAlreadyTracked ? "✓ " : "+ "}
                   {t}
                 </button>
               )
