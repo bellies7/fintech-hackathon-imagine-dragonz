@@ -15,7 +15,7 @@ import { useState } from "react"
 import { defaultStarredTopics } from "@/lib/mock-data"
 import StatsBar from "@/components/StatsBar"
 import SearchBar from "@/components/SearchBar"
-import TopicDistribution from "@/components/TopicDistribution"
+import MostTalkedAbout from "@/components/MostTalkedAbout"
 import ArticleFeed from "@/components/ArticleFeed"
 import ForYouPanel from "@/components/ForYouPanel"
 
@@ -35,7 +35,7 @@ export default function OverviewPage() {
       {/* Pass the live count down to StatsBar */}
       <StatsBar trackedCount={starredTopics.length} />
       <div className="grid grid-cols-1 xl:grid-cols-[400px_1fr] gap-5 items-start">
-        <TopicDistribution />
+        <MostTalkedAbout />
         {/* Pass state down so ArticleFeed can update it */}
         <ArticleFeed starredTopics={starredTopics} setStarredTopics={setStarredTopics} />
       </div>
