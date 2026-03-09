@@ -5,8 +5,8 @@
 //   1. Page header
 //   2. Search bar
 //   3. KPI stat tiles
-//   4. Topic Distribution (left) | Currently Tracking (right)
-//   5. For You (full width below)
+//   4. Left: Topic Distribution / High Risk Alerts / For You
+//      Right: Currently Tracking (tall, scrollable)
 // ============================================================
 
 "use client"
@@ -42,18 +42,17 @@ export default function OverviewPage() {
       />
       {/* Pass the live count down to StatsBar */}
       <StatsBar trackedCount={starredTopics.length} />
-      <div className="grid grid-cols-1 xl:grid-cols-[400px_1fr] gap-5 items-stretch">
+      <div className="grid grid-cols-1 xl:grid-cols-[400px_1fr] gap-5 items-start">
         <div className="space-y-5">
           <MostTalkedAbout />
           <HighRiskAlertsPanel />
+          <ForYouPanel />
         </div>
-        {/* Pass state down so ArticleFeed can update it */}
         <ArticleFeed
           starredTopics={starredTopics}
           setStarredTopics={setStarredTopics}
         />
       </div>
-      <ForYouPanel />
     </div>
   )
 }

@@ -64,7 +64,7 @@ export default function ArticleFeed({ starredTopics, setStarredTopics }: Props) 
 
   return (
     <>
-      <div className="bg-card border border-border rounded-xl overflow-visible flex flex-col max-h-[640px]">
+      <div className="bg-card border border-border rounded-xl overflow-visible flex flex-col">
 
         {/* Panel header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
