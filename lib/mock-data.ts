@@ -18,6 +18,7 @@ export type Article = {
   id: string
   title: string
   source: string
+  url: string
   date: string
   region: string
   topic: string
@@ -45,6 +46,7 @@ export const articles: Article[] = [
     id: "1",
     title: "Fed Holds Rates Steady Amid Inflation Concerns",
     source: "Reuters",
+    url: "https://reuters.com/markets/us/fed-holds-rates-steady-2026-03-05",
     date: "05 Mar 2026",
     region: "Americas",
     topic: "Interest Rates",
@@ -75,6 +77,7 @@ export const articles: Article[] = [
     id: "2",
     title: "Oil Prices Surge on OPEC+ Production Cut Extension",
     source: "CNBC",
+    url: "https://cnbc.com/2026/03/03/oil-opec-production-cut.html",
     date: "03 Mar 2026",
     region: "Global",
     topic: "Oil Prices",
@@ -96,6 +99,7 @@ export const articles: Article[] = [
     id: "3",
     title: "US Inflation Drops to 3.2%, Below Expectations",
     source: "Bloomberg",
+    url: "https://bloomberg.com/news/articles/2026-03-02/us-inflation-drops",
     date: "02 Mar 2026",
     region: "Americas",
     topic: "Inflation",
@@ -117,6 +121,7 @@ export const articles: Article[] = [
     id: "4",
     title: "European Central Bank Maintains Hawkish Stance",
     source: "ECB",
+    url: "https://ecb.europa.eu/press/pr/date/2026/html/ecb.mp260301.en.html",
     date: "01 Mar 2026",
     region: "Europe",
     topic: "Central Bank Policy",
@@ -138,6 +143,7 @@ export const articles: Article[] = [
     id: "5",
     title: "US Jobs Report Shows Stronger Than Expected Hiring",
     source: "Wall Street Journal",
+    url: "https://wsj.com/economy/jobs/us-jobs-report-february-2026",
     date: "28 Feb 2026",
     region: "Americas",
     topic: "Labor Market",
@@ -159,6 +165,7 @@ export const articles: Article[] = [
     id: "6",
     title: "Federal Reserve Minutes Reveal Split on Rate Path",
     source: "Financial Times",
+    url: "https://ft.com/content/fed-minutes-split-rate-path-2026-02-26",
     date: "26 Feb 2026",
     region: "Americas",
     topic: "Federal Reserve",
@@ -180,6 +187,7 @@ export const articles: Article[] = [
     id: "7",
     title: "China's Manufacturing PMI Contracts for Third Consecutive Month",
     source: "Bloomberg",
+    url: "https://bloomberg.com/news/articles/2026-02-24/china-pmi-contracts",
     date: "24 Feb 2026",
     region: "Asia",
     topic: "China Economy",
@@ -201,6 +209,7 @@ export const articles: Article[] = [
     id: "8",
     title: "Treasury Yields Hit 4-Month High on Strong Economic Data",
     source: "Reuters",
+    url: "https://reuters.com/markets/rates-bonds/treasury-yields-4-month-high-2026-02-22",
     date: "22 Feb 2026",
     region: "Americas",
     topic: "Treasury Yields",
@@ -222,6 +231,7 @@ export const articles: Article[] = [
     id: "9",
     title: "Inflation Expectations Rise in University of Michigan Survey",
     source: "CNBC",
+    url: "https://cnbc.com/2026/02/20/michigan-inflation-expectations.html",
     date: "20 Feb 2026",
     region: "Americas",
     topic: "Inflation",
@@ -243,6 +253,7 @@ export const articles: Article[] = [
     id: "10",
     title: "Federal Reserve's Waller Signals Openness to Summer Rate Cut",
     source: "Wall Street Journal",
+    url: "https://wsj.com/economy/central-banking/waller-summer-rate-cut-2026-02-18",
     date: "18 Feb 2026",
     region: "Americas",
     topic: "Federal Reserve",

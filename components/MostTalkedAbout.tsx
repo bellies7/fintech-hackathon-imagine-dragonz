@@ -24,14 +24,40 @@ const REGION_OPTIONS = ["All", "Global", "Asia", "Singapore"] as const
 
 const BAR_COLORS = ["#a855f7", "#f97316", "#22c55e", "#3b82f6", "#eab308"]
 
+function TopicBarSkeleton() {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i}>
+          <div className="flex items-center justify-between mb-1">
+            <div className="h-3 w-20 rounded bg-muted/50 animate-pulse" />
+            <div className="h-3 w-24 rounded bg-muted/50 animate-pulse" />
+          </div>
+          <div className="h-2 rounded-full bg-muted/30 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-muted/50 animate-pulse"
+              style={{ width: `${90 - i * 15}%` }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function MostTalkedAbout() {
   const [articles, setArticles] = useState<SearchArticle[]>([])
   const [activeRegion, setActiveRegion] = useState<string>("All")
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     let cancelled = false
+    setIsLoading(true)
     getArticles().then((data) => {
-      if (!cancelled) setArticles(data)
+      if (!cancelled) {
+        setArticles(data)
+        setIsLoading(false)
+      }
     })
     return () => {
       cancelled = true
@@ -105,7 +131,9 @@ export default function MostTalkedAbout() {
       </p>
 
       {/* Ranked topic bars */}
-      {topTopics.length === 0 ? (
+      {isLoading ? (
+        <TopicBarSkeleton />
+      ) : topTopics.length === 0 ? (
         <p className="text-xs text-muted-foreground text-center py-4">
           No articles found for this region.
         </p>

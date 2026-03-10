@@ -12,7 +12,7 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { articles, type Article } from "@/lib/mock-data"
 import NewsDetailPanel from "./NewsDetailPanel"
 
@@ -22,13 +22,35 @@ const heatConfig = {
   Cool: { badge: "bg-blue-500/15 text-blue-400 border-blue-500/30",   card: "border-blue-500/20",   icon: "❄️" },
 }
 
+function CardSkeleton() {
+  return (
+    <div className="px-4 py-4 border-l-2 border-border">
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <div className="h-2.5 w-32 rounded bg-muted/50 animate-pulse" />
+        <div className="h-5 w-14 rounded-full bg-muted/50 animate-pulse" />
+      </div>
+      <div className="h-2.5 w-20 rounded bg-muted/50 animate-pulse mb-2" />
+      <div className="h-4 w-3/4 rounded bg-muted/50 animate-pulse mb-2" />
+      <div className="space-y-1.5 mb-2">
+        <div className="h-3 w-full rounded bg-muted/50 animate-pulse" />
+        <div className="h-3 w-5/6 rounded bg-muted/50 animate-pulse" />
+      </div>
+      <div className="h-3 w-2/3 rounded bg-muted/50 animate-pulse" />
+    </div>
+  )
+}
+
 export default function ForYouPanel() {
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 4 // ← change this number to show more/fewer cards per page
+  const [isLoading, setIsLoading] = useState(true)
+  const itemsPerPage = 4
 
-  // TODO (backend): Replace with GET /api/recommendations
-  // For now we just use all articles as recommendations
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 400)
+    return () => clearTimeout(timer)
+  }, [])
+
   const recommendations = articles
   const totalPages = Math.ceil(recommendations.length / itemsPerPage)
   const paginatedArticles = recommendations.slice(
@@ -61,7 +83,11 @@ export default function ForYouPanel() {
             One card per article recommendation.
             Click to open the detail panel. */}
         <div className="divide-y divide-border">
-          {paginatedArticles.map(article => {
+          {isLoading ? (
+            Array.from({ length: itemsPerPage }).map((_, i) => (
+              <CardSkeleton key={i} />
+            ))
+          ) : paginatedArticles.map(article => {
             const heat = heatConfig[article.heat]
             return (
               <div key={article.id} onClick={() => setSelectedArticle(article)}
