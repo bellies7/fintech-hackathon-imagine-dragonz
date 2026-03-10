@@ -11,13 +11,30 @@ import {
 import { getArticles, type SearchArticle } from "@/lib/article-source"
 import { searchArticles } from "@/lib/search-engine"
 
-const SUGGESTED_TOPICS = [
-  "Inflation", "Energy", "Oil", "US", "China", "Economy",
-  "Interest Rates", "Federal Reserve", "Central Bank", "Europe",
-  "UK", "Fiscal Policy", "Technology", "Equities", "Geopolitics",
-  "OPEC", "Real Estate", "Singapore", "Growth", "Trade", "ASEAN",
-  "Monetary Policy",
+import { articles as mockArticles } from "@/lib/mock-data"
+
+const TOPIC_GROUPS: { label: string; topics: string[] }[] = [
+  {
+    label: "Macro",
+    topics: ["Inflation", "Interest Rates", "Monetary Policy", "Fiscal Policy", "Central Bank", "Federal Reserve", "Economy", "Growth"],
+  },
+  {
+    label: "Regions",
+    topics: ["US", "China", "Europe", "UK", "Singapore", "ASEAN"],
+  },
+  {
+    label: "Sectors",
+    topics: ["Energy", "Oil", "OPEC", "Technology", "Equities", "Real Estate", "Geopolitics", "Trade"],
+  },
 ]
+
+const ALL_TOPICS = TOPIC_GROUPS.flatMap((g) => g.topics)
+
+const TRENDING_TOPICS = new Set(
+  mockArticles
+    .filter((a) => a.heat === "Hot")
+    .flatMap((a) => [a.topic, ...a.tags])
+)
 
 type FilterMode = "or" | "and"
 
@@ -61,15 +78,19 @@ export default function SearchBar({ starredTopics = [], onTrackTopic }: Props) {
     return searchArticles(articles, orTopics, andTopics)
   }, [articles, orTopics, andTopics])
 
-  const availableSuggestions = SUGGESTED_TOPICS.filter(
-    (t) => !allSelected.includes(t),
+  const availableTopicsSet = new Set(
+    ALL_TOPICS.filter((t) => !allSelected.includes(t)),
   )
 
-  const filteredSuggestions = input.length > 0
-    ? availableSuggestions.filter((t) =>
-        t.toLowerCase().includes(input.toLowerCase()),
-      )
-    : availableSuggestions
+  const filterByInput = (t: string) =>
+    input.length === 0 || t.toLowerCase().includes(input.toLowerCase())
+
+  const filteredGroups = TOPIC_GROUPS.map((group) => ({
+    ...group,
+    topics: group.topics.filter(
+      (t) => availableTopicsSet.has(t) && filterByInput(t),
+    ),
+  })).filter((group) => group.topics.length > 0)
 
   const addTopic = (t: string) => {
     if (allSelected.includes(t)) return
@@ -253,9 +274,9 @@ export default function SearchBar({ starredTopics = [], onTrackTopic }: Props) {
         </div>
       )}
 
-      {/* Suggested topics */}
-      {filteredSuggestions.length > 0 && (
-        <div className="space-y-2">
+      {/* Suggested topics — grouped by category */}
+      {filteredGroups.length > 0 && (
+        <div className="space-y-3">
           <div className="flex items-center gap-2">
             <div className="h-px flex-1 bg-border" />
             <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
@@ -270,40 +291,50 @@ export default function SearchBar({ starredTopics = [], onTrackTopic }: Props) {
             </p>
           )}
 
-          <div className="flex flex-wrap gap-1.5">
-            {filteredSuggestions.map((t) => {
-              const isAlreadyTracked = starredTopics.includes(t)
-              return (
-                <button
-                  key={t}
-                  onClick={() => addTopic(t)}
-                  draggable={showTrackHint && !isAlreadyTracked}
-                  onDragStart={(e) => handleDragStart(e, t)}
-                  onDragEnd={handleDragEnd}
-                  className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all duration-150 select-none ${
-                    draggingTopic === t
-                      ? "opacity-50 scale-95"
-                      : "hover:scale-[1.03] active:scale-95"
-                  } ${
-                    isAlreadyTracked
-                      ? "border-emerald-500/30 text-emerald-500/60 cursor-default"
-                      : showTrackHint
-                        ? `cursor-grab active:cursor-grabbing ${
-                            mode === "or"
-                              ? "border-primary/15 text-muted-foreground hover:text-primary hover:border-primary/40 hover:bg-primary/5"
-                              : "border-orange-500/15 text-muted-foreground hover:text-orange-400 hover:border-orange-500/40 hover:bg-orange-500/5"
-                          }`
-                        : mode === "or"
-                          ? "border-primary/15 text-muted-foreground hover:text-primary hover:border-primary/40 hover:bg-primary/5"
-                          : "border-orange-500/15 text-muted-foreground hover:text-orange-400 hover:border-orange-500/40 hover:bg-orange-500/5"
-                  }`}
-                >
-                  {isAlreadyTracked ? "✓ " : "+ "}
-                  {t}
-                </button>
-              )
-            })}
-          </div>
+          {filteredGroups.map((group) => (
+            <div key={group.label}>
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+                {group.label}
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {group.topics.map((t) => {
+                  const isAlreadyTracked = starredTopics.includes(t)
+                  const isTrending = TRENDING_TOPICS.has(t)
+                  return (
+                    <button
+                      key={t}
+                      onClick={() => addTopic(t)}
+                      draggable={showTrackHint && !isAlreadyTracked}
+                      onDragStart={(e) => handleDragStart(e, t)}
+                      onDragEnd={handleDragEnd}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-all duration-150 select-none ${
+                        draggingTopic === t
+                          ? "opacity-50 scale-95"
+                          : "hover:scale-[1.03] active:scale-95"
+                      } ${
+                        isAlreadyTracked
+                          ? "border-emerald-500/30 text-emerald-500/60 cursor-default"
+                          : isTrending
+                            ? "border-red-500/30 text-red-400 bg-red-500/5 hover:bg-red-500/10 hover:border-red-500/50 cursor-grab active:cursor-grabbing"
+                            : showTrackHint
+                              ? `cursor-grab active:cursor-grabbing ${
+                                  mode === "or"
+                                    ? "border-primary/15 text-muted-foreground hover:text-primary hover:border-primary/40 hover:bg-primary/5"
+                                    : "border-orange-500/15 text-muted-foreground hover:text-orange-400 hover:border-orange-500/40 hover:bg-orange-500/5"
+                                }`
+                              : mode === "or"
+                                ? "border-primary/15 text-muted-foreground hover:text-primary hover:border-primary/40 hover:bg-primary/5"
+                                : "border-orange-500/15 text-muted-foreground hover:text-orange-400 hover:border-orange-500/40 hover:bg-orange-500/5"
+                      }`}
+                    >
+                      {isAlreadyTracked ? "✓ " : isTrending ? "🔥 " : "+ "}
+                      {t}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
