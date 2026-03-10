@@ -34,24 +34,32 @@ export default function SearchBar({ starredTopics = [], onTrackTopic }: Props) {
   const [mode, setMode] = useState<FilterMode>("or")
   const [isFocused, setIsFocused] = useState(false)
   const [draggingTopic, setDraggingTopic] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  const allSelected = [...orTopics, ...andTopics]
+  const queryString = allSelected.length > 0
+    ? allSelected.join(" OR ")
+    : undefined
 
   useEffect(() => {
     let cancelled = false
-    getArticles().then((data) => {
-      if (!cancelled) setArticles(data)
+    setIsLoading(true)
+    getArticles(queryString).then((data) => {
+      if (!cancelled) {
+        setArticles(data)
+        setIsLoading(false)
+      }
     })
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [queryString])
 
   const results = useMemo(() => {
     if (orTopics.length === 0 && andTopics.length === 0) return null
     return searchArticles(articles, orTopics, andTopics)
   }, [articles, orTopics, andTopics])
-
-  const allSelected = [...orTopics, ...andTopics]
 
   const availableSuggestions = SUGGESTED_TOPICS.filter(
     (t) => !allSelected.includes(t),
@@ -302,10 +310,15 @@ export default function SearchBar({ starredTopics = [], onTrackTopic }: Props) {
       {/* Results */}
       {results !== null && (
         <div className="pt-4 border-t border-border space-y-3">
-          <p className="text-xs font-medium text-foreground">
-            {results.length} {results.length === 1 ? "article" : "articles"}{" "}
-            found
-          </p>
+          <div className="flex items-center gap-2">
+            <p className="text-xs font-medium text-foreground">
+              {results.length} {results.length === 1 ? "article" : "articles"}{" "}
+              found
+            </p>
+            {isLoading && (
+              <div className="w-3 h-3 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            )}
+          </div>
 
           {results.length === 0 ? (
             <div className="text-center py-6">

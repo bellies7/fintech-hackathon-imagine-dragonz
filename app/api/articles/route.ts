@@ -99,7 +99,7 @@ export async function GET(request: Request) {
     "api-key": apiKey,
     "show-tags": "keyword",
     "order-by": "newest",
-    "page-size": "50",
+    "page-size": "200",
   })
 
   if (query) {
